@@ -119,3 +119,21 @@ function vault_load() {
   fi
   return 1
 }
+
+function vault_edit() {
+  local vault_dir="${1:-/var/db/vault}"
+  local mount_dir="${2:-/tmp/vault.decrypted}"
+
+  vault_check_gocryptfs && \
+    vault_open "${vault_dir}" "${mount_dir}" && \
+    vim "${mount_dir}"
+
+  local ret=$?
+
+  vault_close "${mount_dir}"
+
+  if [ ${ret} -eq 0 ]; then
+    echo "Vault edited successfully"
+  fi
+  return ${ret}
+}
