@@ -80,9 +80,13 @@ function vault_load_common_env() {
 
 function vault_close() {
   local mount_dir="${1}"
-  echo "Unmounting ${mount_dir}..."
-  fusermount -u  ${mount_dir} && rmdir -v ${mount_dir}
-  return $?
+  if [ -n "$(mount | grep ${mount_dir})" ]; then
+    echo "Unmounting ${mount_dir}..."
+    fusermount -u  "${mount_dir}"
+  fi
+  if [ -d "${mount_dir}" ]; then
+    rmdir -v "${mount_dir}"
+  fi
 }
 
 function vault_validate() {
@@ -102,13 +106,16 @@ function vault_load() {
     local environment="$(vault_get_env "${config_dir}")" && \
     vault_open "${vault_dir}" "${mount_dir}" && \
       vault_load_common_env "${mount_dir}" && \
-      vault_load_env "${mount_dir}" "${environment}" && \
-      vault_close "${mount_dir}"
+      vault_load_env "${mount_dir}" "${environment}"
 
-    if [ $? -eq 0 ]; then
+    local ret=$?
+
+    vault_close "${mount_dir}"
+
+    if [ ${ret} -eq 0 ]; then
       echo "Vault loaded to current environment"
-      return 0
     fi
+    return ${ret}
   fi
   return 1
 }
