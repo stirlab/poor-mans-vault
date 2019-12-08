@@ -1,7 +1,26 @@
 #!/usr/bin/env bash
 
-# Loads a gocryptfs encrypted 'vault' of sensitive environment variables into
-# current shell.
+VAULT_DEFAULT_CONFIG_DIR="/etc/vault"
+VAULT_DEFAULT_VAULT_DIR="/var/db/vault"
+VAULT_DEFAULT_MOUNT_DIR="/tmp/vault.decrypted"
+
+function vault_help() {
+  echo "
+
+Usage:
+
+  vault_init [vault_dir]
+  vault_edit [vault_dir] [mount_dir]
+  vault_load [vault_dir] [config_dir] [mount_dir]
+
+Parameters:
+
+  vault_dir: The gocryptfs encrypted directory (default ${VAULT_DEFAULT_VAULT_DIR})
+  config_dir: The vault config directory (default ${VAULT_DEFAULT_CONFIG_DIR})
+  mount_dir: The directory to mount the encrypted directory on (default ${VAULT_DEFAULT_MOUNT_DIR})
+
+"
+}
 
 function vault_check_gocryptfs() {
   if [ -z "$(which gocryptfs)" ]; then
@@ -95,10 +114,25 @@ function vault_validate() {
   return $?
 }
 
+function vault_init() {
+  local vault_dir="${1:-${VAULT_DEFAULT_VAULT_DIR}}"
+
+  vault_check_gocryptfs && \
+    mkdir -v "${vault_dir}" && \
+    gocryptfs -init "${vault_dir}"
+
+  local ret=$?
+
+  if [ ${ret} -eq 0 ]; then
+    echo "Vault ${vault_dir} initialized successfully"
+  fi
+  return ${ret}
+}
+
 function vault_load() {
-  local vault_dir="${1:-/var/db/vault}"
-  local config_dir="${2:-/etc/vault}"
-  local mount_dir="${3:-/tmp/vault.decrypted}"
+  local vault_dir="${1:-${VAULT_DEFAULT_VAULT_DIR}}"
+  local config_dir="${2:-${VAULT_DEFAULT_CONFIG_DIR}}"
+  local mount_dir="${3:-${VAULT_DEFAULT_MOUNT_DIR}}"
 
   vault_validate "${config_dir}"
 
@@ -121,8 +155,8 @@ function vault_load() {
 }
 
 function vault_edit() {
-  local vault_dir="${1:-/var/db/vault}"
-  local mount_dir="${2:-/tmp/vault.decrypted}"
+  local vault_dir="${1:-${VAULT_DEFAULT_VAULT_DIR}}"
+  local mount_dir="${2:-${VAULT_DEFAULT_MOUNT_DIR}}"
 
   vault_check_gocryptfs && \
     vault_open "${vault_dir}" "${mount_dir}" && \
