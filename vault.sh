@@ -1,28 +1,22 @@
 #!/usr/bin/env bash
 
-VAULT_DEFAULT_CONFIG_DIR="/etc/vault"
+VAULT_DEFAULT_ENVIRONMENT="dev"
 VAULT_DEFAULT_VAULT_DIR="/var/db/vault"
 VAULT_DEFAULT_MOUNT_DIR="/tmp/vault.decrypted"
 
-function vault_help() {
-  echo "
-
-Usage:
-
-  vault_init [vault_dir]
-  vault_edit [vault_dir] [mount_dir]
-  vault_load [vault_dir] [config_dir] [mount_dir]
-
-Parameters:
-
-  vault_dir: The gocryptfs encrypted directory (default ${VAULT_DEFAULT_VAULT_DIR})
-  config_dir: The vault config directory (default ${VAULT_DEFAULT_CONFIG_DIR})
-  mount_dir: The directory to mount the encrypted directory on (default ${VAULT_DEFAULT_MOUNT_DIR})
-
-"
+function _vault_get_environment() {
+  echo "${VAULT_ENVIRONMENT:-${VAULT_DEFAULT_ENVIRONMENT}}"
 }
 
-function vault_check_gocryptfs() {
+function _vault_get_vault_dir() {
+  echo "${VAULT_VAULT_DIR:-${VAULT_DEFAULT_VAULT_DIR}}"
+}
+
+function _vault_get_mount_dir() {
+  echo "${VAULT_MOUNT_DIR:-${VAULT_DEFAULT_MOUNT_DIR}}"
+}
+
+function _vault_check_gocryptfs() {
   if [ -z "$(which gocryptfs)" ]; then
     echo "ERROR: missing gocryptfs"
     return 1
@@ -30,25 +24,9 @@ function vault_check_gocryptfs() {
   return 0
 }
 
-function vault_check_env() {
-  local config_dir="${1}"
-  if [ -r "${config_dir}/env" ]; then
-    return 0
-  else
-    echo "ERROR: ${config_dir}/env not readable"
-    return 1
-  fi
-}
-
-function vault_get_env() {
-  local config_dir="${1}"
-  echo "$(cat "${config_dir}/env")"
-  return 0
-}
-
-function vault_open() {
-  local vault_dir="${1}"
-  local mount_dir="${2}"
+function _vault_open() {
+  local vault_dir="$(_vault_get_vault_dir)"
+  local mount_dir="$(_vault_get_mount_dir)"
   if [ -d "${vault_dir}" ]; then
     if [ ! -d "${mount_dir}" ]; then
       mkdir -v "${mount_dir}"
@@ -70,9 +48,9 @@ function vault_open() {
   fi
 }
 
-function vault_load_env() {
-  local mount_dir="${1}"
-  local environment="${2}"
+function _vault_load_env() {
+  local environment="${1}"
+  local mount_dir="$(_vault_get_mount_dir)"
   if [ -d "${mount_dir}/${environment}" ]; then
     # If the directory exists we expect at least one .sh file in it.
     echo "Loading .sh files from ${mount_dir}/${environment}..."
@@ -91,14 +69,8 @@ function vault_load_env() {
   return 0
 }
 
-function vault_load_common_env() {
-  local mount_dir="${1}"
-  vault_load_env "${mount_dir}" common
-  return $?
-}
-
-function vault_close() {
-  local mount_dir="${1}"
+function _vault_close() {
+  local mount_dir="$(_vault_get_mount_dir)"
   if [ -n "$(mount | grep ${mount_dir})" ]; then
     echo "Unmounting ${mount_dir}..."
     fusermount -u  "${mount_dir}"
@@ -108,16 +80,30 @@ function vault_close() {
   fi
 }
 
-function vault_validate() {
-  local config_dir="${1}"
-  vault_check_gocryptfs && vault_check_env "${config_dir}"
-  return $?
+function vault_help() {
+  echo "
+
+Usage:
+
+  vault_help
+  vault_init
+  vault_edit
+  vault_load
+  vault_change_password
+
+Settings:
+
+  Environment: $(_vault_get_environment)
+  Vault directory: $(_vault_get_vault_dir)
+  Mount directory: $(_vault_get_mount_dir)
+
+"
 }
 
 function vault_init() {
-  local vault_dir="${1:-${VAULT_DEFAULT_VAULT_DIR}}"
+  local vault_dir="$(_vault_get_vault_dir)"
 
-  vault_check_gocryptfs && \
+  _vault_check_gocryptfs && \
     mkdir -v "${vault_dir}" && \
     gocryptfs -init "${vault_dir}"
 
@@ -129,45 +115,51 @@ function vault_init() {
   return ${ret}
 }
 
-function vault_load() {
-  local vault_dir="${1:-${VAULT_DEFAULT_VAULT_DIR}}"
-  local config_dir="${2:-${VAULT_DEFAULT_CONFIG_DIR}}"
-  local mount_dir="${3:-${VAULT_DEFAULT_MOUNT_DIR}}"
-
-  vault_validate "${config_dir}"
-
-  if [ $? -eq 0 ]; then
-    local environment="$(vault_get_env "${config_dir}")" && \
-    vault_open "${vault_dir}" "${mount_dir}" && \
-      vault_load_common_env "${mount_dir}" && \
-      vault_load_env "${mount_dir}" "${environment}"
-
-    local ret=$?
-
-    vault_close "${mount_dir}"
-
-    if [ ${ret} -eq 0 ]; then
-      echo "Vault loaded to current environment"
-    fi
-    return ${ret}
-  fi
-  return 1
-}
-
 function vault_edit() {
-  local vault_dir="${1:-${VAULT_DEFAULT_VAULT_DIR}}"
-  local mount_dir="${2:-${VAULT_DEFAULT_MOUNT_DIR}}"
+  local mount_dir="$(_vault_get_mount_dir)"
 
-  vault_check_gocryptfs && \
-    vault_open "${vault_dir}" "${mount_dir}" && \
+  _vault_check_gocryptfs && \
+    _vault_open && \
     vim "${mount_dir}"
 
   local ret=$?
 
-  vault_close "${mount_dir}"
+  _vault_close
 
   if [ ${ret} -eq 0 ]; then
     echo "Vault edited successfully"
+  fi
+  return ${ret}
+}
+
+function vault_load() {
+  local environment="$(_vault_get_environment)"
+
+  _vault_check_gocryptfs && \
+    _vault_open && \
+    _vault_load_env common && \
+    _vault_load_env "${environment}"
+
+  local ret=$?
+
+  _vault_close
+
+  if [ ${ret} -eq 0 ]; then
+    echo "Vault loaded to current environment"
+  fi
+  return ${ret}
+}
+
+function vault_change_password() {
+  local vault_dir="$(_vault_get_vault_dir)"
+
+  _vault_check_gocryptfs && \
+    gocryptfs -passwd "${vault_dir}"
+
+  local ret=$?
+
+  if [ ${ret} -eq 0 ]; then
+    echo "Vault ${vault_dir} passowrd updated successfully"
   fi
   return ${ret}
 }
