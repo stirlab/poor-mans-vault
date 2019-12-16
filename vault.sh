@@ -69,6 +69,25 @@ function _vault_load_env() {
   return 0
 }
 
+function _vault_load() {
+  local environment="$(_vault_get_environment)"
+
+  _vault_check_gocryptfs && \
+    _vault_open && \
+    _vault_load_env common && \
+    _vault_load_env "${environment}"
+
+  local ret=$?
+
+  _vault_close
+
+  if [ ${ret} -eq 0 ]; then
+    echo "Vault loaded to current environment"
+    export VAULT_LOADED=1
+  fi
+  return ${ret}
+}
+
 function _vault_close() {
   local mount_dir="$(_vault_get_mount_dir)"
   if [ -n "$(mount | grep ${mount_dir})" ]; then
@@ -89,6 +108,7 @@ Usage:
   vault_init
   vault_edit
   vault_load
+  vault_force_load
   vault_change_password
 
 Settings:
@@ -127,27 +147,24 @@ function vault_edit() {
   _vault_close
 
   if [ ${ret} -eq 0 ]; then
-    echo "Vault edited successfully"
+    echo "Vault edited successfully.
+
+Use vault_load to load new configuration to current environment"
+    unset VAULT_LOADED
   fi
   return ${ret}
 }
 
 function vault_load() {
-  local environment="$(_vault_get_environment)"
-
-  _vault_check_gocryptfs && \
-    _vault_open && \
-    _vault_load_env common && \
-    _vault_load_env "${environment}"
-
-  local ret=$?
-
-  _vault_close
-
-  if [ ${ret} -eq 0 ]; then
-    echo "Vault loaded to current environment"
+  if [ -n "${VAULT_LOADED}" ]; then
+    echo "Vault already loaded -- to load again, use vault_force_load"
+  else
+    _vault_load
   fi
-  return ${ret}
+}
+
+function vault_force_load() {
+  _vault_load
 }
 
 function vault_change_password() {
