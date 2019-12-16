@@ -29,7 +29,7 @@ Run ```vault_help``` for usage and current vault settings.
 
 Vault is configured via the following environment variables:
 
- *  ```VAULT_ENVIRONMENT```: The vault environment files to load
+ *  ```VAULT_ENV```: The vault environment files to load
     (default ```dev```). Only this environment and the ```common```
     environment will be loaded in the current shell.
  *  ```VAULT_VAULT_DIR```: The gocryptfs encrypted directory
@@ -55,9 +55,9 @@ This decrypts the vault, mounts it at ```${VAULT_MOUNT_DIR}```, and opens
 ```${VAULT_MOUNT_DIR}``` in vim.
 
 Create a directory in ```${VAULT_MOUNT_DIR}``` that matches the name of the
-```${VAULT_ENVIRONMENT}``` setting.
+```${VAULT_ENV}``` setting.
 
-Within the ```${VAULT_ENVIRONMENT}``` subdirectory, place one or more files ending
+Within the ```${VAULT_ENV}``` subdirectory, place one or more files ending
 with a ```.sh``` extension.
 
 In each file, add any environment variable exports that you wish to keep
@@ -84,7 +84,7 @@ This decrypts the vault, mounts it at ```${VAULT_MOUNT_DIR}```, and sources all
 files ending in ```.sh``` in the following directories, in the following order:
 
  * ```${VAULT_MOUNT_DIR}/common```
- * ```${VAULT_MOUNT_DIR}/${VAULT_ENVIRONMENT}```
+ * ```${VAULT_MOUNT_DIR}/${VAULT_ENV}```
 
 
 Immediately after loading all files into the current shell, the vault is

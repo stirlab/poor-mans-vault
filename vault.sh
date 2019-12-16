@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-VAULT_DEFAULT_ENVIRONMENT="dev"
+VAULT_DEFAULT_ENV="dev"
 VAULT_DEFAULT_VAULT_DIR="/var/db/vault"
 VAULT_DEFAULT_MOUNT_DIR="/tmp/vault.decrypted"
 
 function _vault_get_environment() {
-  echo "${VAULT_ENVIRONMENT:-${VAULT_DEFAULT_ENVIRONMENT}}"
+  echo "${VAULT_ENV:-${VAULT_DEFAULT_ENV}}"
 }
 
 function _vault_get_vault_dir() {
