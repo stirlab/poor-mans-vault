@@ -96,6 +96,30 @@ Immediately after loading all files into the current shell, the vault is
  * Enter the old password
  * Enter the new password
 
+### Pushing to / pulling from remote servers
+
+A simple push/pull mechanism allows synchronizing a local vault with a vault on
+a remote server:
+
+ * ```vault_push root@foo.example.com```
+ * ```vault_pull root@foo.example.com```
+
+Under the hood, ```rsync -avz --delete``` is used to synchronize the
+directories. Directory modification times are checked both local and remote, and
+the operation is aborted if the target directory has a modification time after
+the source directory.
+
+To defeat the modification time validation check, use the ```force``` variant
+of the commands:
+
+ * ```vault_force_push root@foo.example.com```
+ * ```vault_force_pull root@foo.example.com```
+
+**IMPORTANT NOTE:** The validation and synchronization feature is very basic,
+and is provided as a convenience. It should work fine when used properly, and,
+use at your own risk! In particular, make sure you have a valid setting for
+```Vault directory``` on all servers by running ```vault_help```
+
 ### Misc
 
   * See ```man gocryptfs``` to understand the backing library, and run any
