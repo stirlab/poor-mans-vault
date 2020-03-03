@@ -12,29 +12,29 @@ robust secrets manager such as
 ## Installation
 
  * Make sure [gocryptfs](https://nuetzlich.net/gocryptfs) is installed.
- * Source ```vault.sh``` in the Bash shell where you wish to have access to the
+ * Source ```pmv.sh``` in the Bash shell where you wish to have access to the
    vault functions.
 
 ```
- . vault.sh
+ . pmv.sh
 ```
 
 
 ## Usage
 
-Run ```vault_help``` for usage and current vault settings.
+Run ```pmv_help``` for usage and current vault settings.
 
 
 ### Configuration
 
 Vault is configured via the following environment variables:
 
- *  ```VAULT_ENV```: The vault environment files to load
+ *  ```PMV_ENV```: The vault environment files to load
     (default ```dev```). Only this environment and the ```common```
     environment will be loaded in the current shell.
- *  ```VAULT_VAULT_DIR```: The gocryptfs encrypted directory
+ *  ```PMV_VAULT_DIR```: The gocryptfs encrypted directory
     (default ```/var/db/vault```).
- *  ```VAULT_MOUNT_DIR```: The directory to mount the encrypted
+ *  ```PMV_MOUNT_DIR```: The directory to mount the encrypted
     directory on (default ```/tmp/vault.decrypted```).
 
 
@@ -43,21 +43,21 @@ Vault is configured via the following environment variables:
 Before vault can be used, you must initialize the encrypted vault directory,
 and provide the decryption password.
 
- * Ensure ```${VAULT_VAULT_DIR}``` doesn't already exist.
- * Run ```vault_init```, then enter the encyption password.
+ * Ensure ```${PMV_VAULT_DIR}``` doesn't already exist.
+ * Run ```pmv_init```, then enter the encyption password.
 
 
 ### Adding/editing items in the vault
 
-Run ```vault_edit```
+Run ```pmv_edit```
 
-This decrypts the vault, mounts it at ```${VAULT_MOUNT_DIR}```, and opens
-```${VAULT_MOUNT_DIR}``` in vim.
+This decrypts the vault, mounts it at ```${PMV_MOUNT_DIR}```, and opens
+```${PMV_MOUNT_DIR}``` in vim.
 
-Create a directory in ```${VAULT_MOUNT_DIR}``` that matches the name of the
-```${VAULT_ENV}``` setting.
+Create a directory in ```${PMV_MOUNT_DIR}``` that matches the name of the
+```${PMV_ENV}``` setting.
 
-Within the ```${VAULT_ENV}``` subdirectory, place one or more files ending
+Within the ```${PMV_ENV}``` subdirectory, place one or more files ending
 with a ```.sh``` extension.
 
 In each file, add any environment variable exports that you wish to keep
@@ -72,27 +72,27 @@ In addition to the environment specific directories, you can also add a
 ```common``` directory -- any ```.sh``` files within it will be loaded for all
 environments, prior to the environment-specific files being loaded.
 
-Upon exit of vim, the vault is 'closed' by unmounting ```${VAULT_MOUNT_DIR}```.
+Upon exit of vim, the vault is 'closed' by unmounting ```${PMV_MOUNT_DIR}```.
 
 
 ### Loading the vault into the current environment
 
- * Run ```vault_load```
+ * Run ```pmv_load```
  * Enter the password used when the vault was initialized.
 
-This decrypts the vault, mounts it at ```${VAULT_MOUNT_DIR}```, and sources all
+This decrypts the vault, mounts it at ```${PMV_MOUNT_DIR}```, and sources all
 files ending in ```.sh``` in the following directories, in the following order:
 
- * ```${VAULT_MOUNT_DIR}/common```
- * ```${VAULT_MOUNT_DIR}/${VAULT_ENV}```
+ * ```${PMV_MOUNT_DIR}/common```
+ * ```${PMV_MOUNT_DIR}/${PMV_ENV}```
 
 
 Immediately after loading all files into the current shell, the vault is
-'closed' by unmounting ```${VAULT_MOUNT_DIR}```.
+'closed' by unmounting ```${PMV_MOUNT_DIR}```.
 
 ### Changing the vault password
 
- * Run ```vault_change_password```
+ * Run ```pmv_change_password```
  * Enter the old password
  * Enter the new password
 
@@ -101,8 +101,8 @@ Immediately after loading all files into the current shell, the vault is
 A simple push/pull mechanism allows synchronizing a local vault with a vault on
 a remote server:
 
- * ```vault_push root@foo.example.com```
- * ```vault_pull root@foo.example.com```
+ * ```pmv_push root@foo.example.com```
+ * ```pmv_pull root@foo.example.com```
 
 Under the hood, ```rsync -avz --delete``` is used to synchronize the
 directories. Directory modification times are checked both local and remote, and
@@ -112,13 +112,13 @@ the source directory.
 To defeat the modification time validation check, use the ```force``` variant
 of the commands:
 
- * ```vault_force_push root@foo.example.com```
- * ```vault_force_pull root@foo.example.com```
+ * ```pmv_force_push root@foo.example.com```
+ * ```pmv_force_pull root@foo.example.com```
 
 **IMPORTANT NOTE:** The validation and synchronization feature is very basic,
 and is provided as a convenience. It should work fine when used properly, and,
 use at your own risk! In particular, make sure you have a valid setting for
-```Vault directory``` on all servers by running ```vault_help```
+```Vault directory``` on all servers by running ```pmv_help```
 
 ### Misc
 
